@@ -1,10 +1,10 @@
 ---
-title: "How to implement web worker/background tasks in your Angular Application to perform long tasks"
+title: "How to implement web worker/background tasks in your Angular Application to perform long-running tasks"
 seoTitle: "Background task in Angular"
 seoDescription: "How to implement background task with web worker in angular"
 datePublished: Wed Sep 06 2023 22:25:21 GMT+0000 (Coordinated Universal Time)
 cuid: clm8b5joc000409leh7cuefkk
-slug: how-to-implement-web-workerbackground-tasks-in-your-angular-application-to-perform-long-tasks
+slug: how-to-implement-web-workerbackground-tasks-in-your-angular-application-to-perform-long-running-tasks
 cover: https://cdn.hashnode.com/res/hashnode/image/upload/v1694082051039/75e45d54-bbad-40c5-a73f-60cab97b37e9.jpeg
 ogImage: https://cdn.hashnode.com/res/hashnode/image/upload/v1694084267973/b046d218-4caf-4ffc-ab00-2949b78fd602.jpeg
 tags: user-experience, performance, angularjs, webworker, background-tasks
