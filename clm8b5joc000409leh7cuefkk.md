@@ -242,35 +242,69 @@ Encapsulate worker logic within Angular services and then call the method in the
 
 e.g
 
+# Your Logic in the Service/util file
+
 ```typescript
-import { Injectable } from '@angular/core';
-
-@Injectable({
-  providedIn: 'root'
-})
-export class LogicService {
-  private worker: Worker;
-
-  constructor() {
-    this.worker = new Worker('./my-worker.worker', { type: 'module' });
+export function perfromLongRunningTask(data: any): any {
+  // Implement your CPU-intensive task here. For demonstration, I'll just use a loop:
+  let sum = 0;
+  for (let i = 0; i < data; i++) {
+    sum += i;
   }
-
-//in your service write a method that you want to run on the background thread
-performLongRunningTask(): number {
-//write your long running logic here
-//then send it to the web worker
-}
-sendToWebWorker(): void{
-const data = this.performLongRunningTask();
-this.worker.postMessage(data); 
-}
-
+  return sum;
 }
 ```
 
 ---
 
-## **Optimizing Performance with Web Workers**
+```typescript
+import { perfromLongRunningTask } from "./util/perfromLongRunningTask.ts";
+
+addEventListener('message', ({ data }) => {
+  const response = perfromLongRunningTask(data);
+  postMessage(response);
+});
+```
+
+### **Using the Web Worker in the component:**
+
+In `src/app/app.component.ts`
+
+# Sending the Data to be processed
+
+```typescript
+import { Component, OnDestroy, OnInit } from '@angular/core';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent implements OnInit, OnDestroy {
+  worker: Worker;
+
+  ngOnInit(): void {
+    if (typeof Worker !== 'undefined') {
+      // Create a new web worker instance
+      this.worker = new Worker('./app.worker', { type: 'module' });
+      this.worker.onmessage = ({ data }) => {
+        console.log('From Web Worker:', data);
+      };
+      this.worker.postMessage(100000000); // Sample data to be processed by the worker
+    } else {
+      // Web Workers are not supported in this environment.
+      console.warn('Web Workers are not supported.');
+    }
+  }
+
+  ngOnDestroy(): void {
+    // Terminate the web worker when the component is destroyed
+    this.worker?.terminate();
+  }
+}
+```
+
+# **Optimizing Performance with Web Workers**
 
 ### **Offloading Heavy Computations**
 
@@ -376,4 +410,6 @@ With this comprehensive guide, you are equipped to leverage the power of Web Wor
 
 Summary
 
-> This article provides an in-depth guide on implementing web workers in Angular applications to handle background tasks efficiently. It covers the setup process, creating and integrating web workers, communication between the main thread and the worker, testing, debugging, and best practices. By the end of this article, you'll understand the benefits of using web workers and be encouraged to explore their potential in enhancing your Angular applications' performance.
+This article provides an in-depth guide on implementing web workers in Angular applications to handle background tasks efficiently. It covers the setup process, creating and integrating web workers, communication between the main thread and the worker, testing, debugging, and best practices. By the end of this article, you'll understand the benefits of using web workers and be encouraged to explore their potential in enhancing your Angular applications' performance.
+
+Thanks for reading. You can catch up with me @kellyncodes on all platforms.
