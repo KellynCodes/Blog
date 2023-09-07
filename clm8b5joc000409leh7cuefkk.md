@@ -262,7 +262,7 @@ performLongRunningTask(): number {
 }
 sendToWebWorker(): void{
 const data = this.performLongRunningTask();
-this.worker.postMessage(); 
+this.worker.postMessage(data); 
 }
 
 }
