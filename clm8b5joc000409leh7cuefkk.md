@@ -143,9 +143,9 @@ ng new angular-web-worker
 
 ### **Creating a Basic Web Worker**
 
-To create a Web Worker, save the following code in a file named `my-worker.js`:
+To create a Web Worker, save the following code in a file named `app-worker.ts`:
 
-```javascript
+```typescript
 /// <reference lib="webworker" />
 
 addEventListener('message', ({ data }) => {
@@ -159,7 +159,7 @@ addEventListener('message', ({ data }) => {
 Use `postMessage()` to send data to the worker and listen to the `message` event to receive data:
 
 ```typescript
-const worker = new Worker('my-worker.js');
+const worker = new Worker('app-worker.ts', import.meta.url);
 worker.postMessage('Hello Worker');
 worker.onmessage = function(event) {
   console.log('Received message ' + event.data);
@@ -216,11 +216,89 @@ worker.onerror = (error) => {
 
 ---
 
-## **Advanced Web Worker Patterns in Angular**
+## **Advanced Web Worker Patterns in Angular**  
 
-### **Handling Multiple Web Workers**
+  
+  
+Handling multiple web workers can be streamlined by using an array or a dedicated service to manage the workers. Below is an example that demonstrates how to achieve this:
 
-Instantiate multiple workers and manage them using an array or a service.
+### **1\. Create the Worker Script (**`worker.ts`):
+
+```typescript
+/// <reference lib="webworker" />
+
+addEventListener('message', ({ data }) => {
+  const response = `worker response to ${data}`;
+  postMessage(response);
+});
+```
+
+### **2\. Create a Service to Handle Multiple Workers:**
+
+```typescript
+class WorkerService {
+    constructor(workerScript, numWorkers) {
+        this.workers = [];
+        for (let i = 0; i < numWorkers; i++) {
+            this.workers.push(new Worker(workerScript));
+        }
+    }
+
+    // Send data to a specific worker
+    sendToWorker(index, data) {
+        return new Promise((resolve, reject) => {
+            let worker = this.workers[index];
+
+            worker.onmessage = function(e) {
+                resolve(e.data);
+            }
+
+            worker.onerror = function(err) {
+                reject(err);
+            }
+
+            worker.postMessage(data);
+        });
+    }
+
+    // If you don't need a specific worker, just get any worker to handle the task
+    sendToAnyWorker(data) {
+        let index = Math.floor(Math.random() * this.workers.length);
+        return this.sendToWorker(index, data);
+    }
+
+    // Terminate all workers
+    terminateAll() {
+        this.workers.forEach(worker => worker.terminate());
+    }
+}
+```
+
+### **3\. Utilize the Service in Your Main Script:**
+
+```typescript
+// Instantiate the service with 4 workers for example
+let workerService = new WorkerService('worker.js', 4);
+
+// Send data to a specific worker (e.g., worker 2)
+workerService.sendToWorker(2, 5).then(result => {
+    console.log(`Result from worker 2: ${result}`);
+}).catch(err => {
+    console.error(`Error from worker 2: ${err}`);
+});
+
+// Send data to any available worker
+workerService.sendToAnyWorker(10).then(result => {
+    console.log(`Result from any worker: ${result}`);
+}).catch(err => {
+    console.error(`Error from any worker: ${err}`);
+});
+
+// ... later on, if needed
+// workerService.terminateAll();
+```
+
+This is a basic implementation. Depending on the complexity and requirements of your application, you might need to incorporate features like load-balancing, worker health-checks, or more advanced communication patterns.
 
 ### **Terminating Web Workers Gracefully**
 
@@ -242,10 +320,10 @@ Encapsulate worker logic within Angular services and then call the method in the
 
 e.g
 
-# Your Logic in the Service/util file
+# Your Logic in the Service/util/performLongRunningTask.ts
 
 ```typescript
-export function perfromLongRunningTask(data: any): any {
+export function performLongRunningTask(data: any): any {
   // Implement your CPU-intensive task here. For demonstration, I'll just use a loop:
   let sum = 0;
   for (let i = 0; i < data; i++) {
@@ -258,10 +336,10 @@ export function perfromLongRunningTask(data: any): any {
 ---
 
 ```typescript
-import { perfromLongRunningTask } from "./util/perfromLongRunningTask.ts";
+import { perfromLongRunningTask } from "./Services/util/performLongRunningTask.ts";
 
 addEventListener('message', ({ data }) => {
-  const response = perfromLongRunningTask(data);
+  const response = performLongRunningTask(data);
   postMessage(response);
 });
 ```
@@ -333,16 +411,39 @@ Execute multiple tasks concurrently by spawning multiple workers.
 
 Integrate Web Workers in your Angular testing suite using Karma and Jasmine.
 
-### **Mocking Web Worker Behavior**
+Testing whether Web Workers are functioning correctly in an Angular application requires you to consider the purpose and behavior of the Web Worker in the context of your application.
 
-Create mock workers to simulate different scenarios during testing.
+Here's a general approach on how you can test if Web Workers are working well in an Angular application:
 
-### **Best Practices for Testing**
-
-1. Test message passing rigorously.
+1. **Testing:** Depending on the nature of your Web Worker (whether it's computational, for data-fetching, etc.), your tests might vary. However, for a basic test:
     
-2. Simulate error scenarios.
+    a. **Unit Test:** You can mock the Web Worker for unit testing purposes.
     
+    ```typescript
+    it('should communicate with the Web Worker', (done) => {
+      const worker = new Worker('./my-worker.worker', { type: 'module' });
+      worker.onmessage = ({ data }) => {
+        expect(data).toBe('worker response to hello');
+        done();
+      };
+      worker.postMessage('hello');
+    });
+    ```
+    
+    b. **End-to-End Test (e.g., using Protractor or Cypress):** You can write an end-to-end test to check the actual behavior in a browser context. This will ensure that everything integrates properly and behaves as expected in a real-world scenario.
+    
+    c. **Performance Test:** If the purpose of the Web Worker is to offload intensive computations, you might want to run performance tests. You can use browser profiling tools to ensure that the main thread remains unblocked.
+    
+2. **Browser Testing:** Not all browsers have the same level of support for Web Workers. So, it's a good idea to test your implementation across various browsers to ensure consistent behavior.
+    
+3. **Edge Cases and Error Handling:**
+    
+    * What happens if the worker fails or throws an error?
+        
+    * How does your Angular application handle that? Testing such cases is vital for a robust application.
+        
+
+Remember, the details of how you test will depend largely on what you are using the Web Worker for in your application. The above guidelines give you a general direction to start from.
 
 ---
 
@@ -406,7 +507,7 @@ The journey with Web Workers is vast; keep exploring and innovating!
 * `comlink`: A tiny library for RPC over `postMessage`.
     
 
-With this comprehensive guide, you are equipped to leverage the power of Web Workers in your Angular applications. Happy coding!
+With this comprehensive guide, you are equipped to leverage the power of Web Workers in your Angular applications.
 
 Summary
 
